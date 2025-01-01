@@ -1,0 +1,13 @@
+name = "worker-rust"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+
+[env.dev]
+build = { command = "cargo install -q worker-build && worker-build --dev" }
+
+kv_namespaces = [
+    { binding = "Animal_Rescues_Rusty_KV", id = "da3963546b4f41db9b16c74dcace2002" },
+]
