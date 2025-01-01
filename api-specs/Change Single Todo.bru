@@ -1,0 +1,19 @@
+meta {
+  name: Change Single Todo
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8787/todo/2
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "rusty",
+    "description": 25,
+    "species": "PL"
+  }
+}

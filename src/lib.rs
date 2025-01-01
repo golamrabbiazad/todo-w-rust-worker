@@ -8,28 +8,24 @@ struct SharedData {
     name: String,
 }
 
-// This is the struct that we will use to store and retrieve data from KV. It implements Serialize and Deserialize
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct AnimalRescue {
+struct Todo {
     id: u8,
     name: String,
-    age: u8,
-    species: String,
+    description: String,
 }
 
-// This is the struct that we will use to update data in KV. It implements Serialize and Deserialize
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct AnimalRescueUpdate {
+struct TodoUpdate {
     name: String,
-    age: u8,
-    species: String,
+    description: String,
 }
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     // Shared data is accessible across requests
     let shared_data = SharedData {
-        name: "Rustacean".to_string(),
+        name: "Rust Worker".to_string(),
     };
 
     // Create a new router with the shared data
@@ -37,20 +33,18 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     // Router definition
     router
-        .get("/", |_, _ctx| Response::ok("Rust worker from CF!"))
+        .get("/", |_, _ctx| Response::ok("Todo Api"))
         .get("/shared-data", |_, ctx| {
             // Get the shared data from the context. This is available because we used with_data above.
             let shared_data = ctx.data.name;
             // Return the response
             Response::ok(shared_data)
         })
-        .post_async("/rescues", |mut req, ctx| async move {
+        .post_async("/todo", |mut req, ctx| async move {
             // Get the KV namespace
-            let kv = ctx.kv("Animal_Rescues_Rusty_KV")?;
-            // Get the body of the request - Note that AnimalRescue implements Deserialize
-            let body = req.json::<AnimalRescue>().await?;
-
-            println!("{:?}", body.age);
+            let kv = ctx.kv("Todo_KV")?;
+            // Get the body of the request - Note that Todo implements Deserialize
+            let body = req.json::<Todo>().await?;
 
             // Serialize the body to a string
             let value = to_string(&body)?;
@@ -59,11 +53,11 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             // Return the response
             Response::from_json(&body)
         })
-        .delete_async("/rescues/:id", |_req, ctx| async move {
+        .delete_async("/todo/:id", |_req, ctx| async move {
             // Get the id from the request, we use if let to check if the id exists
             if let Some(id) = ctx.param("id") {
                 // Get the KV namespace
-                let kv = ctx.kv("Animal_Rescues_Rusty_KV")?;
+                let kv = ctx.kv("Todo_KV")?;
                 // Delete the value from KV. In this case,
                 // we use the id as the key and return a match statement in case of an error.
                 return match kv.delete(id).await {
@@ -72,60 +66,57 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                     Err(e) => Response::error(e.to_string(), 404),
                 };
             }
-            Response::error("Animal not found", 404)
+            Response::error("Todo not found", 404)
         })
-        .put_async("/rescues/:id", |mut req, ctx| async move {
+        .put_async("/todo/:id", |mut req, ctx| async move {
             // Get the id from the request, we use if let to check if the id exists
             if let Some(id) = ctx.param("id") {
                 // Get the KV namespace
-                let kv = ctx.kv("Animal_Rescues_Rusty_KV")?;
-                // Get the body of the request - Note that AnimalRescueUpdate implements Deserialize
-                let body = req.json::<AnimalRescueUpdate>().await?;
+                let kv = ctx.kv("Todo_KV")?;
+                // Get the body of the request - Note that TodoUpdate implements Deserialize
+                let body = req.json::<TodoUpdate>().await?;
                 // Check to see if the id exists in KV
-                if kv.get(id).json::<AnimalRescue>().await?.is_none() {
+                if kv.get(id).json::<Todo>().await?.is_none() {
                     // If the id does not exist, return an error
-                    return Response::error("Animal not found", 404);
+                    return Response::error("Todo not found", 404);
                 }
 
-                // Create a new AnimalRescue struct from the body and id
-                let new_animal = AnimalRescue {
+                // Create a new Todo struct from the body and id
+                let new_todo = Todo {
                     id: id.parse::<u8>().unwrap(),
                     name: body.name,
-                    age: body.age,
-                    species: body.species,
+                    description: body.description,
                 };
 
-                // Serialize new_animal to a string
-                let value = to_string(&new_animal)?;
+                // Serialize new_todo to a string
+                let value = to_string(&new_todo)?;
                 // Store the value in KV
                 kv.put(&id, value)?.execute().await?;
                 // Return the response
-                return Response::from_json(&new_animal);
+                return Response::from_json(&new_todo);
             }
-            Response::error("Animal not found", 404)
+            Response::error("Todo not found", 404)
         })
-        .get_async("/rescues/:id", |_req, ctx| async move {
+        .get_async("/todo/:id", |_req, ctx| async move {
             // Get the id from the request, we use if let to check if the id exists
             if let Some(id) = ctx.param("id") {
                 // Get the KV namespace
-                let kv = ctx.kv("Animal_Rescues_Rusty_KV")?;
+                let kv = ctx.kv("Todo_KV")?;
                 // Get the value from KV. In this case,
                 // we use the id as the key and return a match statement because the value may not exist.
-                return match kv.get(id).json::<AnimalRescue>().await? {
-                    Some(animal) => Response::from_json(&animal),
-                    None => Response::error("Animal not found", 404),
+                return match kv.get(id).json::<Todo>().await? {
+                    Some(todo) => Response::from_json(&todo),
+                    None => Response::error("Todo not found", 404),
                 };
             }
-            Response::error("Animal not found", 404)
+            Response::error("Todo not found", 404)
         })
-        .get_async("/rescues", |_req, ctx| async move {
+        .get_async("/todo", |_req, ctx| async move {
             // Get the KV namespace
-            let kv = ctx.kv("Animal_Rescues_Rusty_KV")?;
+            let kv = ctx.kv("Todo_KV")?;
 
             // Get all the keys from KV
             let keys = kv.list().execute().await?.keys;
-
-            console_debug!("{:?}", keys);
 
             // Create a Vec of only the key names
             let key_names = keys
@@ -135,33 +126,20 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
             console_debug!("{:?}", key_names);
 
-            // Create a Vec of the futures, each future will return an AnimalRescue from KV.
-
-            // The JavaScript code most comprarable to this is:
-            // -----------------------------------------------
-            // const values = keys.map(key => key.name);
-            // const futures = values.map(key => kv.get(key).json());
-            // const animals = await Promise.all(futures);
-            // const final_result = new Response(JSON.stringify(animals));
-            // return final_result;
-            // -----------------------------------------------
-
-            let futures = key_names
-                .iter()
-                .map(|key| kv.get(key).json::<AnimalRescue>());
+            let futures = key_names.iter().map(|key| kv.get(key).json::<Todo>());
 
             // Wait for all the futures to complete. This is similar to Promise.all in JavaScript.
-            let animals = join_all(futures)
+            let todos = join_all(futures)
                 .await
                 .into_iter()
-                .filter_map(|animal| animal.ok())
+                .filter_map(|todo| todo.ok())
                 .collect::<Vec<_>>()
                 .into_iter()
-                .map(|animal| animal)
+                .map(|todo| todo)
                 .collect::<Vec<_>>();
 
-            // Create a response from the animals Vec, wrapped in a Result type.
-            let final_result = Response::from_json(&animals);
+            // Create a response from the todos Vec, wrapped in a Result type.
+            let final_result = Response::from_json(&todos);
             console_debug!("Final Result: \n {:?}", &final_result);
 
             final_result

@@ -646,6 +646,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "todo-worker-rust"
+version = "0.2.0"
+dependencies = [
+ "futures",
+ "serde",
+ "serde_json",
+ "worker",
+]
+
+[[package]]
 name = "tokio"
 version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -898,16 +908,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-macro-support",
  "worker-sys",
-]
-
-[[package]]
-name = "worker-rust"
-version = "0.1.0"
-dependencies = [
- "futures",
- "serde",
- "serde_json",
- "worker",
 ]
 
 [[package]]

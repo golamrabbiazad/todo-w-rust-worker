@@ -1,0 +1,20 @@
+meta {
+  name: Post A Single Todo
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8787/rescues
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": 1,
+    "name": "rusty",
+    "age": 21,
+    "species": "PL"
+  }
+}
